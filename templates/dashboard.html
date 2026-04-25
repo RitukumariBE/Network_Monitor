@@ -3,8 +3,6 @@
 <head>
     <title>JSPL Network Monitor</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Chart.js for real-time charts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Open Sans', sans-serif; background: #0f0f1a; color: #333; }
@@ -159,12 +157,6 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .chart-subtitle {
-            font-size: 11px;
-            color: rgba(255,255,255,0.3);
-            margin-bottom: 12px;
-        }
-
         .chart-trend { min-height: 240px; }
 
         .action-bar {
@@ -200,29 +192,6 @@
         .btn-primary:hover { background: #a00e18; color: white; }
         .btn-secondary { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.1); }
         .btn-secondary:hover { background: rgba(255,255,255,0.12); color: white; }
-
-        .live-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: #28a745;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .live-dot {
-            width: 6px;
-            height: 6px;
-            background: #28a745;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
 
         .filters-bar {
             display: flex;
@@ -385,6 +354,7 @@
             50% { opacity: 0.2; }
         }
 
+        /* FIX: delete button is now inside a form (POST), styled to look the same */
         .delete-form { display: inline; margin: 0; padding: 0; }
         .btn-del {
             background: rgba(193,18,31,0.1);
@@ -500,17 +470,11 @@
             <canvas id="barChart" height="80"></canvas>
         </div>
         <div class="chart-card chart-trend">
-            <div class="chart-title">Status Trend (12-Hour)</div>
-            <div class="chart-subtitle">
-                <span class="live-indicator">
-                    <span class="live-dot"></span> Real-time Data
-                </span>
-            </div>
+            <div class="chart-title">Status Trend (Recent Checks)</div>
             <canvas id="trendChart" height="120"></canvas>
         </div>
         <div class="chart-card chart-trend">
             <div class="chart-title">Update Activity</div>
-            <div class="chart-subtitle">Checks & Changes per hour</div>
             <canvas id="updateChart" height="120"></canvas>
         </div>
     </div>
@@ -534,56 +498,59 @@
     <div class="filters-bar">
         <span class="filters-label">Device Filters</span>
         <form method="get" action="/" class="search-box" id="deviceFilterForm">
-            <input type="text" name="search" placeholder="Search IP, type, location..." class="search-input" value="{{ search_query }}">
-            <select name="type" class="filter-select">
-                <option value="">All Device Types</option>
-                <option value="cctv" {% if type_filter == 'cctv' %}selected{% endif %}>CCTV</option>
-                <option value="switch" {% if type_filter == 'switch' %}selected{% endif %}>Switch</option>
-                <option value="router" {% if type_filter == 'router' %}selected{% endif %}>Router</option>
-                <option value="access_point" {% if type_filter == 'access_point' %}selected{% endif %}>Access Point</option>
+            <select id="typeFilter" name="type" class="filter-select" onchange="applyFilters()">
+                <option value="">All Types</option>
+                {% for t in all_devices|map(attribute='device_type')|unique|list|sort %}
+                <option value="{{ t }}" {% if type_filter == t|lower %}selected{% endif %}>{{ t|upper }}</option>
+                {% endfor %}
             </select>
-            <select name="status" class="filter-select">
+            <select id="statusFilter" name="status" class="filter-select" onchange="applyFilters()">
                 <option value="">All Status</option>
-                <option value="ONLINE" {% if status_filter == 'UP' %}selected{% endif %}>Online</option>
-                <option value="OFFLINE" {% if status_filter == 'DOWN' %}selected{% endif %}>Offline</option>
+                <option value="UP" {% if status_filter == 'UP' %}selected{% endif %}>Online</option>
+                <option value="DOWN" {% if status_filter == 'DOWN' %}selected{% endif %}>Offline</option>
                 <option value="UNKNOWN" {% if status_filter == 'UNKNOWN' %}selected{% endif %}>Unknown</option>
             </select>
-            <button type="submit" class="btn btn-secondary">Apply Filters</button>
+            <input type="text" id="searchInput" name="search" class="search-input" placeholder="Search IP, type or location..." value="{{ search_query or '' }}" oninput="filterTable()">
+            <button type="submit" class="btn btn-secondary">Apply</button>
+            <button type="button" class="btn btn-secondary" onclick="clearFilters()">Reset</button>
         </form>
     </div>
 
-    <!-- Add Device (Admin Only) -->
+    <!-- Add Device Form -->
     {% if role == 'admin' %}
     <div class="add-form">
-        <div class="add-form-title">Add New Device</div>
-        <form method="post" action="/add_device" class="add-form-row">
-            <input type="text" name="ip" placeholder="IP Address" required class="form-input-dark" style="width: 150px;">
-            <select name="device_type" class="form-input-dark" style="width: 120px;">
-                <option value="cctv">CCTV</option>
-                <option value="switch">Switch</option>
-                <option value="router">Router</option>
-                <option value="access_point">Access Point</option>
-            </select>
-            <input type="text" name="location" placeholder="Location" class="form-input-dark" style="width: 150px;">
-            <button type="submit" class="btn btn-primary">+ Add Device</button>
+        <div class="add-form-title">&#43; Add New Device</div>
+        <form action="/add_device" method="post">
+            <div class="add-form-row">
+                <input type="text" name="ip" placeholder="IP Address" required class="form-input-dark" style="width:180px;">
+                <select name="device_type" required class="form-input-dark">
+                    <option value="">Device Type</option>
+                    <option value="cctv">CCTV</option>
+                    <option value="switch">Switch</option>
+                    <option value="router">Router</option>
+                    <option value="access_point">Access Point</option>
+                </select>
+                <input type="text" name="location" placeholder="Location" required class="form-input-dark" style="width:180px;">
+                <button type="submit" class="btn btn-primary">Add Device</button>
+            </div>
         </form>
     </div>
     {% endif %}
 
-    <!-- Devices Table -->
+    <!-- Device Table -->
     <div class="table-card">
         <div class="table-header">
-            <div class="table-title">Network Devices</div>
-            <div class="table-count">Showing {{ devices|length }} / {{ total }} devices</div>
+            <span class="table-title">&#128225; Device Registry</span>
+            <span class="table-count">Showing {{ devices|length }} of {{ total }} Devices</span>
         </div>
-        <table>
+        <table id="deviceTable">
             <thead>
                 <tr>
-                    <th>IP</th>
+                    <th>IP Address</th>
                     <th>Type</th>
                     <th>Location</th>
                     <th>Status</th>
-                    <th>Last Check</th>
+                    <th>Last Checked</th>
                     {% if role == 'admin' %}<th>Action</th>{% endif %}
                 </tr>
             </thead>
@@ -591,18 +558,23 @@
                 {% for device in devices %}
                 <tr>
                     <td><strong>{{ device.ip }}</strong></td>
-                    <td>{{ device.device_type|title }}</td>
+                    <td>{{ device.device_type|upper }}</td>
                     <td>{{ device.location }}</td>
                     <td>
-                        <span class="pill pill-{{ device.current_status|lower }}">
-                            <span class="dot dot-{{ device.current_status|lower }}"></span>
-                            {{ device.current_status }}
-                        </span>
+                        {% if device.current_status == 'UP' %}
+                            <span class="pill pill-up"><span class="dot dot-up"></span>Online</span>
+                        {% elif device.current_status == 'DOWN' %}
+                            <span class="pill pill-down"><span class="dot dot-down"></span>Offline</span>
+                        {% else %}
+                            <span class="pill pill-unknown"><span class="dot dot-unknown"></span>Unknown</span>
+                        {% endif %}
                     </td>
-                    <td><span id="check-{{ device.id }}">{{ device.last_checked.strftime('%Y-%m-%d %H:%M:%S') if device.last_checked else 'Never' }}</span></td>
+                    <td style="color:rgba(255,255,255,0.3); font-size:12px;">{{ device.last_checked or '—' }}</td>
                     {% if role == 'admin' %}
                     <td>
-                        <form method="post" action="/delete_device/{{ device.id }}" class="delete-form" style="display: inline;" onsubmit="return confirm('Delete device {{ device.ip }}?');">
+                        <!-- FIX: POST form instead of GET link to prevent CSRF -->
+                        <form action="/delete_device/{{ device.id }}" method="post" class="delete-form"
+                              onsubmit="return confirm('Delete {{ device.ip }}?')">
                             <button type="submit" class="btn-del">Delete</button>
                         </form>
                     </td>
@@ -616,293 +588,179 @@
     <!-- Pagination -->
     <div class="pagination">
         {% if page > 1 %}
-            <a href="/?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">First</a>
-            <a href="/?page={{ page - 1 }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">← Prev</a>
+        <a href="{{ url_for('index', page=page - 1, search=search_query, type=type_filter, status=status_filter) }}" class="page-btn">&#8592; Prev</a>
         {% endif %}
-        <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="page-btn active">{{ p }}</span>
+            {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+            <a href="{{ url_for('index', page=p, search=search_query, type=type_filter, status=status_filter) }}" class="page-btn">{{ p }}</a>
+            {% elif p == 4 or p == total_pages - 3 %}
+            <span class="page-dots">...</span>
+            {% endif %}
+        {% endfor %}
+
         {% if page < total_pages %}
-            <a href="/?page={{ page + 1 }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">Next →</a>
-            <a href="/?page={{ total_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">Last</a>
+        <a href="{{ url_for('index', page=page + 1, search=search_query, type=type_filter, status=status_filter) }}" class="page-btn">Next &#8594;</a>
         {% endif %}
+
+        <span class="page-info">Page {{ page }} of {{ total_pages }} &bull; {{ total }} total</span>
     </div>
 
 </div>
 
-<!-- Real-time Chart Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const chartColors = {
-        up: 'rgba(92, 184, 92, 0.8)',
-        down: 'rgba(231, 76, 60, 0.8)',
-        unknown: 'rgba(255, 193, 7, 0.8)',
-        upBorder: 'rgb(92, 184, 92)',
-        downBorder: 'rgb(231, 76, 60)',
-        unknownBorder: 'rgb(255, 193, 7)'
-    };
+    Chart.defaults.color = 'rgba(255,255,255,0.4)';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
 
-    let donutChart, barChart, trendChart, updateChart;
+    var donutChart = new Chart(document.getElementById('donutChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Online', 'Offline', 'Unknown'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['rgba(40,167,69,0.8)', 'rgba(193,18,31,0.8)', 'rgba(255,193,7,0.8)'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
+            cutout: '70%'
+        }
+    });
 
-    // Format timestamp to human-readable format
-    function formatTimeLabel(dateStr) {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        
-        return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    }
+    var typeCounts = {};
 
-    function initCharts(data) {
-        // ── Donut Chart (Status Distribution) ──
-        const donutCtx = document.getElementById('donutChart').getContext('2d');
-        donutChart = new Chart(donutCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Online', 'Offline', 'Unknown'],
-                datasets: [{
-                    data: [data.counts.up, data.counts.down, data.counts.unknown],
-                    backgroundColor: [chartColors.up, chartColors.down, chartColors.unknown],
-                    borderColor: [chartColors.upBorder, chartColors.downBorder, chartColors.unknownBorder],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: 'rgba(255,255,255,0.7)',
-                            font: { size: 11 },
-                            padding: 12
-                        }
-                    }
-                }
+    var barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(typeCounts),
+            datasets: [{
+                data: Object.values(typeCounts),
+                backgroundColor: ['rgba(193,18,31,0.7)', 'rgba(24,95,165,0.7)', 'rgba(40,167,69,0.7)', 'rgba(255,193,7,0.7)'],
+                borderRadius: 2,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
+                x: { grid: { display: false } }
             }
-        });
+        }
+    });
 
-        // ── Bar Chart (Device Types) ──
-        const types = Object.keys(data.type_counts);
-        const typeCounts = Object.values(data.type_counts);
-        const barCtx = document.getElementById('barChart').getContext('2d');
-        barChart = new Chart(barCtx, {
-            type: 'bar',
-            data: {
-                labels: types.map(t => t.toUpperCase()),
-                datasets: [{
-                    label: 'Count',
-                    data: typeCounts,
-                    backgroundColor: 'rgba(24, 95, 165, 0.7)',
-                    borderColor: 'rgb(24, 95, 165)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: 'rgba(255,255,255,0.5)' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        ticks: { color: 'rgba(255,255,255,0.7)' },
-                        grid: { display: false }
-                    }
-                }
+    var trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Online', data: [], borderColor: 'rgba(40,167,69,0.9)', tension: 0.3, borderWidth: 2, fill: false },
+                { label: 'Offline', data: [], borderColor: 'rgba(193,18,31,0.9)', tension: 0.3, borderWidth: 2, fill: false },
+                { label: 'Unknown', data: [], borderColor: 'rgba(255,193,7,0.9)', tension: 0.3, borderWidth: 2, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
+                x: { grid: { display: false } }
             }
-        });
+        }
+    });
 
-        // ── Trend Chart (Status Over Time) ──
-        const trendCtx = document.getElementById('trendChart').getContext('2d');
-        const formattedLabels = data.trend.labels.map(formatTimeLabel);
-        
-        trendChart = new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: formattedLabels,
-                datasets: [
-                    {
-                        label: 'Online',
-                        data: data.trend.up,
-                        borderColor: chartColors.upBorder,
-                        backgroundColor: 'rgba(92, 184, 92, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: chartColors.upBorder,
-                        pointBorderWidth: 0
-                    },
-                    {
-                        label: 'Offline',
-                        data: data.trend.down,
-                        borderColor: chartColors.downBorder,
-                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: chartColors.downBorder,
-                        pointBorderWidth: 0
-                    },
-                    {
-                        label: 'Unknown',
-                        data: data.trend.unknown,
-                        borderColor: chartColors.unknownBorder,
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: chartColors.unknownBorder,
-                        pointBorderWidth: 0
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: 'rgba(255,255,255,0.7)',
-                            font: { size: 11 },
-                            padding: 12
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgba(255,255,255,0.5)',
-                            font: { size: 10 },
-                            maxRotation: 45,
-                            minRotation: 0
-                        },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        ticks: { color: 'rgba(255,255,255,0.5)' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    }
-                }
+    var updateChart = new Chart(document.getElementById('updateChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Checks', data: [], borderColor: 'rgba(24,95,165,0.95)', tension: 0.3, borderWidth: 2, fill: false },
+                { label: 'Status Changes', data: [], borderColor: 'rgba(193,18,31,0.95)', tension: 0.3, borderWidth: 2, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
+                x: { grid: { display: false } }
             }
-        });
+        }
+    });
 
-        // ── Update Activity Chart ──
-        const updateCtx = document.getElementById('updateChart').getContext('2d');
-        trendChart = new Chart(updateCtx, {
-            type: 'bar',
-            data: {
-                labels: formattedLabels,
-                datasets: [
-                    {
-                        label: 'Checks',
-                        data: data.updates.checks,
-                        backgroundColor: 'rgba(24, 95, 165, 0.6)',
-                        borderColor: 'rgb(24, 95, 165)',
-                        borderWidth: 1,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Changes',
-                        data: data.updates.changes,
-                        borderColor: '#c1121f',
-                        backgroundColor: 'rgba(193, 18, 31, 0.2)',
-                        borderWidth: 2,
-                        type: 'line',
-                        tension: 0.4,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#c1121f',
-                        fill: true,
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: 'rgba(255,255,255,0.7)',
-                            font: { size: 11 },
-                            padding: 12
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgba(255,255,255,0.5)',
-                            font: { size: 10 },
-                            maxRotation: 45,
-                            minRotation: 0
-                        },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        type: 'linear',
-                        position: 'left',
-                        ticks: { color: 'rgba(255,255,255,0.5)' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y1: {
-                        type: 'linear',
-                        position: 'right',
-                        ticks: { color: '#c1121f' },
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
-    // Fetch and update data every 30 seconds
-    function updateDashboard() {
+    function refreshDashboardCharts() {
         fetch('/dashboard_metrics')
-            .then(resp => resp.json())
-            .then(data => {
-                // Update stat cards
-                document.getElementById('totalCount').textContent = 
-                    data.counts.up + data.counts.down + data.counts.unknown;
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) return;
+
+                document.getElementById('totalCount').textContent = data.counts.total;
                 document.getElementById('upCount').textContent = data.counts.up;
                 document.getElementById('downCount').textContent = data.counts.down;
                 document.getElementById('unknownCount').textContent = data.counts.unknown;
 
-                // Destroy existing charts
-                if (donutChart) donutChart.destroy();
-                if (barChart) barChart.destroy();
-                if (trendChart) trendChart.destroy();
-                if (updateChart) updateChart.destroy();
+                donutChart.data.datasets[0].data = [data.counts.up, data.counts.down, data.counts.unknown];
+                donutChart.update('none');
 
-                // Reinitialize charts with new data
-                initCharts(data);
+                barChart.data.labels = Object.keys(data.type_counts);
+                barChart.data.datasets[0].data = Object.values(data.type_counts);
+                barChart.update('none');
+
+                trendChart.data.labels = data.trend.labels || [];
+                trendChart.data.datasets[0].data = data.trend.up || [];
+                trendChart.data.datasets[1].data = data.trend.down || [];
+                trendChart.data.datasets[2].data = data.trend.unknown || [];
+                trendChart.update('none');
+
+                updateChart.data.labels = data.updates.labels || [];
+                updateChart.data.datasets[0].data = data.updates.checks || [];
+                updateChart.data.datasets[1].data = data.updates.changes || [];
+                updateChart.update('none');
             })
-            .catch(err => console.error('❌ Failed to update dashboard:', err));
+            .catch(function(err) { console.error('Unable to refresh dashboard metrics:', err); });
     }
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const initialData = {{ dashboard_metrics_data|tojson }};
-        initCharts(initialData);
+    refreshDashboardCharts();
+    setInterval(refreshDashboardCharts, 30000);
 
-        // Update every 30 seconds
-        setInterval(updateDashboard, 30000);
-    });
+    function filterTable() {
+        var input = document.getElementById('searchInput').value.toLowerCase().trim();
+        var typeFilter = document.getElementById('typeFilter').value;
+        var statusFilter = document.getElementById('statusFilter').value;
+
+        document.querySelectorAll('#deviceTable tbody tr').forEach(function(row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length < 4) return;
+
+            var ip = cells[0].innerText.toLowerCase();
+            var type = cells[1].innerText.trim().toUpperCase();
+            var location = cells[2].innerText.toLowerCase();
+            var status = cells[3].innerText.trim().toUpperCase();
+            var textMatch = !input || ip.includes(input) || type.toLowerCase().includes(input) || location.includes(input);
+            var typeMatch = !typeFilter || type === typeFilter;
+            var statusMatch = !statusFilter || status === statusFilter;
+
+            row.style.display = (textMatch && typeMatch && statusMatch) ? '' : 'none';
+        });
+    }
+
+    function applyFilters() {
+        filterTable();
+        document.getElementById('deviceFilterForm').submit();
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('deviceFilterForm').submit();
+    }
 </script>
 
 </body>
