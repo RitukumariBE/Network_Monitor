@@ -1,6 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import time
 
 
 def send_alert_emails(sender_email, sender_password, pending_emails):
@@ -25,7 +26,7 @@ def send_alert_emails(sender_email, sender_password, pending_emails):
         server.login(sender_email, sender_password)
         print("✅ SMTP connection established")
 
-        for item in pending_emails:
+        for idx, item in enumerate(pending_emails):
             device_ip      = item['device_ip']
             old_status     = item['old_status']
             new_status     = item['new_status']
@@ -57,6 +58,13 @@ This is an automated alert from Network Monitor.
                     print(f"  ✉️  Sent [{new_status}] alert for {device_ip} → {recipient}")
                 except Exception as e:
                     print(f"  ❌ Failed to send to {recipient}: {e}")
+
+            # Add delay between emails to avoid hitting Gmail rate limits
+            # Delay after each email except the last one
+            if idx < len(pending_emails) - 1:
+                delay_seconds = 2
+                print(f"  ⏳ Waiting {delay_seconds}s before next email...")
+                time.sleep(delay_seconds)
 
         server.quit()
         print("📭 SMTP connection closed")
