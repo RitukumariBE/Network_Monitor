@@ -15,12 +15,16 @@ def ping_device(ip):
         timeout_seconds = str(max(1, int(int(ping_timeout_ms) / 1000)))
         command = ["ping", "-c", ping_count, "-W", timeout_seconds, ip]
 
+    # FIX: subprocess timeout must be strictly greater than ping's own timeout
+    # so we give it ping_timeout_ms + 1 second buffer, minimum 3 seconds
+    subprocess_timeout = max(3, int(int(ping_timeout_ms) / 1000) + 1)
+
     try:
         result = subprocess.run(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=max(2, int(ping_count) * 2)
+            timeout=subprocess_timeout   # FIX: was int(ping_count)*2 which was too short
         )
 
         output = result.stdout.decode('utf-8', errors='ignore')
@@ -43,8 +47,12 @@ def ping_device(ip):
         else:
             return "DOWN", None
 
+    except subprocess.TimeoutExpired:
+        # FIX: handle timeout explicitly — treat as DOWN, not UNKNOWN
+        print(f"  ⏱️  Ping timeout for {ip}")
+        return "DOWN", None
     except Exception as e:
-        print(f"Error pinging {ip}: {e}")
+        print(f"  ❌ Error pinging {ip}: {e}")
         return "UNKNOWN", None
 
 

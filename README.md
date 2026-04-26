@@ -1,5 +1,4 @@
-
-   JINDAL STEEL - NETWORK MONITORING SYSTEM
+JINDAL STEEL - NETWORK MONITORING SYSTEM
    Setup & Installation Guide
 =====================================================
 
@@ -42,7 +41,7 @@ You will see:
    Scheduler started
    Admin exists
    Ready!
-   Running on http://127.0.0.1:5000
+   Running on http://0.0.0.0:5000
 
 
 STEP 5 - ACCESS DASHBOARD
@@ -83,7 +82,7 @@ STEP 7 - EMAIL ALERTS SETUP
 
 FEATURES
 --------
-- Pings all devices every 15 minutes automatically
+- Pings all devices every 10 minutes automatically
 - Shows UP / DOWN / UNKNOWN status on dashboard
 - Sends email alert when any device goes offline
 - Admin can add / delete devices
@@ -99,7 +98,6 @@ models.py       - Database tables
 ping_engine.py  - Ping logic
 monitor.py      - Monitoring engine
 email_alerts.py - Email sending
-import_devices.py - CSV import script
 data/devices.csv  - Your devices list
 templates/      - Web pages
 

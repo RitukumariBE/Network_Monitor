@@ -4,12 +4,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from models import db, User, Device, Log, Alert, EmailConfig, DeviceAlertCycle
 import csv
 import os
+import threading                          # FIX: added for background monitor run
 from sqlalchemy import func, case, text
 from datetime import datetime, timedelta
 from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
-# Load SECRET_KEY from environment variable; fall back to a default only in dev.
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///network_monitor.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -53,6 +53,23 @@ scheduler.add_job(
 )
 scheduler.start()
 print("📅 Scheduler started - monitor will run every 10 minutes")
+
+
+# FIX: track if a manual monitor run is already in progress
+_monitor_running = False
+
+def _run_monitor_background():
+    """Run monitoring in a background thread so the web request returns instantly."""
+    global _monitor_running
+    try:
+        with app.app_context():
+            from monitor import run_monitoring
+            run_monitoring()
+    except Exception as e:
+        print(f"❌ Background monitor error: {e}")
+    finally:
+        _monitor_running = False
+        print("✅ Background monitor run complete!")
 
 
 def build_dashboard_metrics():
@@ -229,11 +246,27 @@ def monitor():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    print("🔍 Manual monitor triggered from dashboard...")
-    from monitor import run_monitoring
-    run_monitoring()
-    flash('✅ Monitor run complete!')
+    global _monitor_running
+
+    # FIX: if already running, don't launch another thread
+    if _monitor_running:
+        flash('⏳ Monitor is already running in the background...')
+        return redirect(url_for('index'))
+
+    # FIX: launch in background thread → page returns immediately
+    _monitor_running = True
+    print("🔍 Manual monitor triggered from dashboard (background thread)...")
+    t = threading.Thread(target=_run_monitor_background, daemon=True)
+    t.start()
+
+    flash('✅ Monitor started! Results will update automatically in ~30 seconds.')
     return redirect(url_for('index'))
+
+
+@app.route('/monitor_status')
+def monitor_status():
+    """Optional: lets the frontend poll if a monitor run is in progress."""
+    return jsonify({"running": _monitor_running})
 
 
 @app.route('/upload_csv', methods=['POST'])
@@ -340,7 +373,6 @@ def users():
         flash('Admins only!')
         return redirect(url_for('index'))
     all_users = User.query.all()
-    # FIX: pass role so users.html can render the role pill correctly
     return render_template('users.html', users=all_users, role=session.get('role'))
 
 
@@ -372,7 +404,6 @@ def add_user():
     return redirect(url_for('users'))
 
 
-# FIX: Changed to POST to prevent CSRF via GET link
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -422,11 +453,9 @@ def email_config():
         flash('✅ Email settings saved!')
         return redirect(url_for('email_config'))
 
-    # FIX: pass role so email_config.html renders the role pill correctly
     return render_template('email_config.html', config=config, role=session.get('role'))
 
 
-# FIX: Changed to POST to prevent CSRF via GET link
 @app.route('/delete_device/<int:device_id>', methods=['POST'])
 def delete_device(device_id):
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -527,6 +556,11 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Enable WAL mode — prevents "database is locked" when background
+        # thread writes while web requests are reading simultaneously
+        db.session.execute(text("PRAGMA journal_mode=WAL"))
+        db.session.execute(text("PRAGMA synchronous=NORMAL"))
+        db.session.commit()
         db.session.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_log_device_timestamp ON log (device_id, timestamp)"
         ))
@@ -557,4 +591,4 @@ if __name__ == '__main__':
             print("✅ Admin exists")
 
     print("🚀 Ready!")
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=5000)

@@ -354,7 +354,6 @@
             50% { opacity: 0.2; }
         }
 
-        /* FIX: delete button is now inside a form (POST), styled to look the same */
         .delete-form { display: inline; margin: 0; padding: 0; }
         .btn-del {
             background: rgba(193,18,31,0.1);
@@ -572,7 +571,6 @@
                     <td style="color:rgba(255,255,255,0.3); font-size:12px;">{{ device.last_checked or '—' }}</td>
                     {% if role == 'admin' %}
                     <td>
-                        <!-- FIX: POST form instead of GET link to prevent CSRF -->
                         <form action="/delete_device/{{ device.id }}" method="post" class="delete-form"
                               onsubmit="return confirm('Delete {{ device.ip }}?')">
                             <button type="submit" class="btn-del">Delete</button>
@@ -660,7 +658,7 @@
         data: {
             labels: [],
             datasets: [
-                { label: 'Online', data: [], borderColor: 'rgba(40,167,69,0.9)', tension: 0.3, borderWidth: 2, fill: false },
+                { label: 'Online',  data: [], borderColor: 'rgba(40,167,69,0.9)',  tension: 0.3, borderWidth: 2, fill: false },
                 { label: 'Offline', data: [], borderColor: 'rgba(193,18,31,0.9)', tension: 0.3, borderWidth: 2, fill: false },
                 { label: 'Unknown', data: [], borderColor: 'rgba(255,193,7,0.9)', tension: 0.3, borderWidth: 2, fill: false }
             ]
@@ -680,7 +678,7 @@
         data: {
             labels: [],
             datasets: [
-                { label: 'Checks', data: [], borderColor: 'rgba(24,95,165,0.95)', tension: 0.3, borderWidth: 2, fill: false },
+                { label: 'Checks',         data: [], borderColor: 'rgba(24,95,165,0.95)',  tension: 0.3, borderWidth: 2, fill: false },
                 { label: 'Status Changes', data: [], borderColor: 'rgba(193,18,31,0.95)', tension: 0.3, borderWidth: 2, fill: false }
             ]
         },
@@ -696,34 +694,60 @@
 
     function refreshDashboardCharts() {
         fetch('/dashboard_metrics')
-            .then(function(r) { return r.json(); })
+            .then(function(r) {
+                // If server returns non-JSON (e.g. login page redirect after session
+                // expiry), r.ok will be false. Redirect to login instead of crashing.
+                if (r.status === 401) {
+                    window.location.href = '/login';
+                    return Promise.reject('session_expired');
+                }
+                if (!r.ok) {
+                    return Promise.reject('http_' + r.status);
+                }
+                // Guard: only parse as JSON if Content-Type is actually JSON
+                var ct = r.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    // Likely got an HTML error page — redirect to login to be safe
+                    window.location.href = '/login';
+                    return Promise.reject('not_json');
+                }
+                return r.json();
+            })
             .then(function(data) {
-                if (data.error) return;
+                if (!data || data.error) return;
 
-                document.getElementById('totalCount').textContent = data.counts.total;
-                document.getElementById('upCount').textContent = data.counts.up;
-                document.getElementById('downCount').textContent = data.counts.down;
+                // Update stat counters
+                document.getElementById('totalCount').textContent   = data.counts.total;
+                document.getElementById('upCount').textContent      = data.counts.up;
+                document.getElementById('downCount').textContent    = data.counts.down;
                 document.getElementById('unknownCount').textContent = data.counts.unknown;
 
+                // Donut chart (no timestamps)
                 donutChart.data.datasets[0].data = [data.counts.up, data.counts.down, data.counts.unknown];
                 donutChart.update('none');
 
+                // Bar chart (device types, no timestamps)
                 barChart.data.labels = Object.keys(data.type_counts);
                 barChart.data.datasets[0].data = Object.values(data.type_counts);
                 barChart.update('none');
 
-                trendChart.data.labels = data.trend.labels || [];
-                trendChart.data.datasets[0].data = data.trend.up || [];
-                trendChart.data.datasets[1].data = data.trend.down || [];
-                trendChart.data.datasets[2].data = data.trend.unknown || [];
+                // Trend chart
+                trendChart.data.labels              = data.trend.labels || [];
+                trendChart.data.datasets[0].data    = data.trend.up      || [];
+                trendChart.data.datasets[1].data    = data.trend.down    || [];
+                trendChart.data.datasets[2].data    = data.trend.unknown || [];
                 trendChart.update('none');
 
-                updateChart.data.labels = data.updates.labels || [];
-                updateChart.data.datasets[0].data = data.updates.checks || [];
-                updateChart.data.datasets[1].data = data.updates.changes || [];
+                // Update activity chart
+                updateChart.data.labels             = data.updates.labels || [];
+                updateChart.data.datasets[0].data   = data.updates.checks  || [];
+                updateChart.data.datasets[1].data   = data.updates.changes || [];
                 updateChart.update('none');
             })
-            .catch(function(err) { console.error('Unable to refresh dashboard metrics:', err); });
+            .catch(function(err) {
+                if (err === 'session_expired' || err === 'not_json') return;
+                console.error('Dashboard metrics error:', err);
+            });
     }
 
     refreshDashboardCharts();
@@ -738,12 +762,13 @@
             var cells = row.querySelectorAll('td');
             if (cells.length < 4) return;
 
-            var ip = cells[0].innerText.toLowerCase();
-            var type = cells[1].innerText.trim().toUpperCase();
+            var ip       = cells[0].innerText.toLowerCase();
+            var type     = cells[1].innerText.trim().toUpperCase();
             var location = cells[2].innerText.toLowerCase();
-            var status = cells[3].innerText.trim().toUpperCase();
-            var textMatch = !input || ip.includes(input) || type.toLowerCase().includes(input) || location.includes(input);
-            var typeMatch = !typeFilter || type === typeFilter;
+            var status   = cells[3].innerText.trim().toUpperCase();
+
+            var textMatch   = !input      || ip.includes(input) || type.toLowerCase().includes(input) || location.includes(input);
+            var typeMatch   = !typeFilter   || type === typeFilter;
             var statusMatch = !statusFilter || status === statusFilter;
 
             row.style.display = (textMatch && typeMatch && statusMatch) ? '' : 'none';
@@ -757,7 +782,7 @@
 
     function clearFilters() {
         document.getElementById('searchInput').value = '';
-        document.getElementById('typeFilter').value = '';
+        document.getElementById('typeFilter').value  = '';
         document.getElementById('statusFilter').value = '';
         document.getElementById('deviceFilterForm').submit();
     }
