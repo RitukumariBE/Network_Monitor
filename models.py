@@ -52,3 +52,18 @@ class DeviceAlertCycle(db.Model):
     device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False, unique=True)
     last_status = db.Column(db.String(10), nullable=True)  # Track last status sent in email
     cycle_count = db.Column(db.Integer, default=0)  # Track monitoring cycles to skip first cycle
+
+# ── Add this class to your models.py ──────────────────────────────────────────
+# This stores custom device types created by admins.
+# Built-in types (cctv, switch, router, etc.) are defined in app.py as BUILTIN_TYPES
+# and are NOT stored in this table.
+
+class DeviceType(db.Model):
+    __tablename__ = 'device_type'
+
+    id    = db.Column(db.Integer, primary_key=True)
+    slug  = db.Column(db.String(60), unique=True, nullable=False, index=True)
+    label = db.Column(db.String(60), nullable=False)
+
+    def __repr__(self):
+        return f'<DeviceType {self.slug}>'

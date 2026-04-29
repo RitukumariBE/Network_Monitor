@@ -1,26 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 
 <head>
     <title>JSPL Network Monitor</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap"
         rel="stylesheet">
+
+    <!-- ─── FOUC FIX: apply saved theme before page renders ─── -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('jspl_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        :root,
+        [data-theme="dark"] {
+            --bg-base:     #0f0f1a;
+            --bg-card:     #1a1a2e;
+            --bg-hover:    rgba(255,255,255,0.02);
+            --border:      rgba(255,255,255,0.06);
+            --border-soft: rgba(255,255,255,0.05);
+            --border-input:rgba(255,255,255,0.1);
+            --text-primary:rgba(255,255,255,0.85);
+            --text-muted:  rgba(255,255,255,0.45);
+            --text-dim:    rgba(255,255,255,0.25);
+            --text-cell:   rgba(255,255,255,0.7);
+            --topbar-bg:   #1a1a2e;
+            --th-bg:       rgba(255,255,255,0.03);
+            --input-bg:    rgba(255,255,255,0.05);
+            --btn-sec-bg:  rgba(255,255,255,0.07);
+            --btn-sec-hover:rgba(255,255,255,0.12);
+            --btn-sec-border:rgba(255,255,255,0.1);
+            --btn-sec-color:rgba(255,255,255,0.7);
+            --flash-bg:    #1a2e1a;
+            --flash-border:#28a745;
+            --flash-color: #5cb85c;
+            --edit-row-bg: rgba(24,95,165,0.08);
+            --edit-row-border: rgba(24,95,165,0.3);
+            --shadow-card: none;
+            --shadow-table: none;
         }
+
+        [data-theme="light"] {
+            --bg-base:     #eef1f7;
+            --bg-card:     #ffffff;
+            --bg-hover:    rgba(24,95,165,0.04);
+            --border:      rgba(0,0,0,0.08);
+            --border-soft: rgba(0,0,0,0.05);
+            --border-input:rgba(0,0,0,0.15);
+            --text-primary:#111827;
+            --text-muted:  #4b5563;
+            --text-dim:    #9ca3af;
+            --text-cell:   #374151;
+            --topbar-bg:   #1a1a2e;
+            --th-bg:       #f8f9fc;
+            --input-bg:    #ffffff;
+            --btn-sec-bg:  #f3f4f8;
+            --btn-sec-hover:#e8eaf2;
+            --btn-sec-border:rgba(0,0,0,0.12);
+            --btn-sec-color:#374151;
+            --flash-bg:    #ecfdf5;
+            --flash-border:#16a34a;
+            --flash-color: #15803d;
+            --edit-row-bg: rgba(24,95,165,0.05);
+            --edit-row-border: rgba(24,95,165,0.3);
+            --shadow-card: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+            --shadow-table: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Open Sans', sans-serif;
-            background: #0f0f1a;
-            color: #333;
+            background: var(--bg-base);
+            color: var(--text-cell);
+            transition: background 0.25s, color 0.25s;
         }
 
         .topbar {
-            background: #1a1a2e;
+            background: var(--topbar-bg);
             height: 56px;
             display: flex;
             align-items: center;
@@ -32,31 +93,20 @@
             z-index: 100;
         }
 
-        .topbar-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+        .topbar-left  { display:flex; align-items:center; gap:16px; flex:1; }
 
-        .brand {
+        .topbar-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             font-family: 'Rajdhani', sans-serif;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 700;
             color: white;
-            letter-spacing: 2px;
-        }
-
-        .brand span {
-            color: #c1121f;
-        }
-
-        .page-badge {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            border-left: 1px solid rgba(255, 255, 255, 0.15);
-            padding-left: 14px;
+            white-space: nowrap;
+            pointer-events: none;
         }
 
         .topbar-right {
@@ -64,15 +114,18 @@
             align-items: center;
             gap: 14px;
             font-size: 12px;
+            flex-shrink: 0;
         }
 
-        .user-info {
-            color: rgba(255, 255, 255, 0.6);
+        .logo {
+            height: 80px;
+            width: auto;
+            object-fit: contain;
+            display: block;
         }
 
-        .user-info strong {
-            color: white;
-        }
+        .user-info { color: rgba(255,255,255,0.6); }
+        .user-info strong { color: white; }
 
         .role-pill {
             padding: 3px 10px;
@@ -82,46 +135,53 @@
             letter-spacing: 1px;
             text-transform: uppercase;
         }
+        .role-admin { background:#c1121f; color:white; }
+        .role-user  { background:#185FA5; color:white; }
 
-        .role-admin {
-            background: #c1121f;
+        .theme-toggle {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 13px;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            font-family: 'Open Sans', sans-serif;
         }
-
-        .role-user {
-            background: #185FA5;
-            color: white;
-        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.2); }
+        .theme-toggle-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
 
         .logout-link {
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255,255,255,0.4);
             text-decoration: none;
             font-size: 11px;
             letter-spacing: 1px;
             text-transform: uppercase;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.15);
             padding: 5px 12px;
             border-radius: 2px;
             transition: all 0.2s;
         }
+        .logout-link:hover { color:white; border-color:#c1121f; }
 
-        .logout-link:hover {
-            color: white;
-            border-color: #c1121f;
-        }
-
-        .main {
-            padding: 20px 24px;
-        }
+        .main { padding: 20px 24px; }
 
         .flash-msg {
-            background: #1a2e1a;
-            border-left: 3px solid #28a745;
-            color: #5cb85c;
+            background: var(--flash-bg);
+            border-left: 3px solid var(--flash-border);
+            color: var(--flash-color);
             padding: 10px 16px;
             font-size: 13px;
             margin-bottom: 20px;
             border-radius: 2px;
+        }
+
+        [data-theme="light"] .flash-msg {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
 
         .stats-grid {
@@ -132,69 +192,48 @@
         }
 
         .stat-card {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 3px;
             padding: 18px 20px;
             position: relative;
             overflow: hidden;
+            transition: background 0.25s, box-shadow 0.2s;
+            box-shadow: var(--shadow-card);
         }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+        .stat-total::before { background:#185FA5; }
+        .stat-up::before    { background:#28a745; }
+        .stat-down::before  { background:#c1121f; }
+        .stat-unknown::before { background:#ffc107; }
 
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-        }
-
-        .stat-total::before {
-            background: #185FA5;
-        }
-
-        .stat-up::before {
-            background: #28a745;
-        }
-
-        .stat-down::before {
-            background: #c1121f;
-        }
-
-        .stat-unknown::before {
-            background: #ffc107;
+        [data-theme="light"] .stat-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
         }
 
         .stat-label {
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 10px;
         }
-
         .stat-number {
             font-family: 'Rajdhani', sans-serif;
             font-size: 36px;
             font-weight: 700;
             line-height: 1;
         }
+        .stat-total .stat-number  { color:#185FA5; }
+        .stat-up .stat-number     { color:#28a745; }
+        .stat-down .stat-number   { color:#e03030; }
+        .stat-unknown .stat-number{ color:#d97706; }
 
-        .stat-total .stat-number {
-            color: #5b9bd5;
-        }
-
-        .stat-up .stat-number {
-            color: #5cb85c;
-        }
-
-        .stat-down .stat-number {
-            color: #e74c3c;
-        }
-
-        .stat-unknown .stat-number {
-            color: #ffc107;
-        }
+        [data-theme="light"] .stat-total .stat-number { color:#1d4ed8; }
+        [data-theme="light"] .stat-up .stat-number    { color:#16a34a; }
+        [data-theme="light"] .stat-down .stat-number  { color:#dc2626; }
+        [data-theme="light"] .stat-unknown .stat-number { color:#b45309; }
 
         .stat-icon {
             position: absolute;
@@ -213,38 +252,40 @@
         }
 
         .chart-card {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 3px;
             padding: 16px;
+            transition: background 0.25s;
+            box-shadow: var(--shadow-card);
         }
-
         .chart-title {
             font-family: 'Rajdhani', sans-serif;
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 14px;
             padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-soft);
         }
+        .chart-trend { min-height: 240px; }
 
-        .chart-trend {
-            min-height: 240px;
-        }
+        canvas.clickable { cursor: pointer; }
 
-        .action-bar {
+        .action-bar, .filters-bar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
             margin-bottom: 16px;
-            background: #1a1a2e;
+            background: var(--bg-card);
             padding: 12px 16px;
             border-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            transition: background 0.25s;
+            box-shadow: var(--shadow-card);
         }
 
         .btn {
@@ -263,38 +304,16 @@
             font-family: 'Open Sans', sans-serif;
             transition: all 0.2s;
         }
-
-        .btn-primary {
-            background: #c1121f;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #a00e18;
-            color: white;
-        }
-
+        .btn-primary { background:#c1121f; color:white; }
+        .btn-primary:hover { background:#a00e18; color:white; }
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.07);
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--btn-sec-bg);
+            color: var(--btn-sec-color);
+            border: 1px solid var(--btn-sec-border);
         }
-
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: white;
-        }
-
-        .filters-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-            background: #1a1a2e;
-            padding: 12px 16px;
-            border-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--btn-sec-hover);
+            color: var(--text-primary);
         }
 
         .filters-label {
@@ -302,167 +321,402 @@
             font-size: 12px;
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.45);
+            color: var(--text-muted);
             margin-right: 6px;
         }
 
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .search-box { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
-        .search-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            padding: 7px 14px;
-            font-size: 12px;
-            color: white;
-            width: 220px;
-            font-family: 'Open Sans', sans-serif;
-            outline: none;
-        }
-
-        .search-input::placeholder {
-            color: rgba(255, 255, 255, 0.25);
-        }
-
-        .search-input:focus {
-            border-color: #c1121f;
-        }
-
-        .filter-select {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .search-input, .filter-select, .form-input-dark {
+            background: var(--input-bg);
+            border: 1px solid var(--border-input);
             border-radius: 2px;
             padding: 7px 10px;
             font-size: 12px;
-            color: white;
+            color: var(--text-primary);
             font-family: 'Open Sans', sans-serif;
             outline: none;
-            min-width: 120px;
+            transition: background 0.25s, color 0.25s, border 0.2s;
+        }
+        .search-input { padding: 7px 14px; width: 220px; }
+        .search-input::placeholder { color: var(--text-dim); }
+        .search-input:focus, .filter-select:focus, .form-input-dark:focus { border-color:#c1121f; }
+        .filter-select { min-width: 120px; }
+        .filter-select option, .form-input-dark option { background: var(--bg-card); color: var(--text-primary); }
+
+        [data-theme="light"] .search-input,
+        [data-theme="light"] .filter-select,
+        [data-theme="light"] .form-input-dark {
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+        }
+        [data-theme="light"] .search-input:focus,
+        [data-theme="light"] .filter-select:focus,
+        [data-theme="light"] .form-input-dark:focus {
+            box-shadow: 0 0 0 2px rgba(193,18,31,0.12);
         }
 
-        .filter-select:focus {
-            border-color: #c1121f;
-        }
-
-        .filter-select option {
-            background: #1a1a2e;
-        }
-
+        /* ── Add Device Form ── */
         .add-form {
-            background: #1a1a2e;
-            border: 1px solid rgba(193, 18, 31, 0.3);
+            background: var(--bg-card);
+            border: 1px solid rgba(193,18,31,0.3);
             border-radius: 3px;
             padding: 16px 20px;
             margin-bottom: 16px;
+            transition: background 0.25s;
+            box-shadow: var(--shadow-card);
         }
-
         .add-form-title {
             font-family: 'Rajdhani', sans-serif;
             font-size: 12px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 12px;
         }
+        .add-form-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+        .form-input-dark { padding: 8px 12px; font-size: 13px; }
 
-        .add-form-row {
+        /* ── Device Type Select Wrapper (custom type inline) ── */
+        .type-select-wrapper {
+            position: relative;
             display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 0;
         }
 
-        .form-input-dark {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            padding: 8px 12px;
-            font-size: 13px;
+        .type-select-inner {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .type-select-inner select {
+            border-radius: 2px 0 0 2px;
+            border-right: none;
+        }
+
+        .btn-add-type-inline {
+            height: 100%;
+            padding: 8px 10px;
+            background: rgba(193,18,31,0.12);
+            border: 1px solid rgba(193,18,31,0.3);
+            border-left: none;
+            border-radius: 0 2px 2px 0;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            font-family: 'Open Sans', sans-serif;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-add-type-inline:hover {
+            background: #c1121f;
             color: white;
+        }
+
+        /* Inline custom type input panel */
+        .inline-type-panel {
+            display: none;
+            margin-top: 6px;
+            background: rgba(193,18,31,0.06);
+            border: 1px dashed rgba(193,18,31,0.3);
+            border-radius: 2px;
+            padding: 8px 10px;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .inline-type-panel.open {
+            display: flex;
+        }
+        .inline-type-panel input {
+            background: var(--input-bg);
+            border: 1px solid var(--border-input);
+            border-radius: 2px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: var(--text-primary);
             font-family: 'Open Sans', sans-serif;
             outline: none;
+            width: 180px;
+            flex-shrink: 0;
+        }
+        .inline-type-panel input:focus { border-color: #c1121f; }
+        .inline-type-panel input::placeholder { color: var(--text-dim); }
+
+        .btn-type-save {
+            padding: 6px 12px;
+            background: rgba(40,167,69,0.15);
+            border: 1px solid rgba(40,167,69,0.3);
+            color: #5cb85c;
+            border-radius: 2px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-type-save:hover { background: #28a745; color: white; }
+
+        .btn-type-cancel {
+            padding: 6px 10px;
+            background: transparent;
+            border: 1px solid var(--border-input);
+            color: var(--text-muted);
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-type-cancel:hover { color: var(--text-primary); }
+
+        .inline-type-hint {
+            font-size: 10px;
+            color: var(--text-dim);
+            white-space: nowrap;
         }
 
-        .form-input-dark:focus {
-            border-color: #c1121f;
+        /* ── Manage Custom Types Panel ── */
+        .manage-types-toggle {
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: 'Open Sans', sans-serif;
+            padding: 0;
+            transition: color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .manage-types-toggle:hover { color: var(--text-muted); }
+        .manage-types-toggle .arrow { transition: transform 0.2s; display:inline-block; }
+        .manage-types-toggle.open .arrow { transform: rotate(90deg); }
+
+        .manage-types-panel {
+            display: none;
+            margin-top: 10px;
+            border-top: 1px solid var(--border-soft);
+            padding-top: 12px;
+        }
+        .manage-types-panel.open { display: block; }
+
+        .manage-types-panel-title {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
         }
 
-        .form-input-dark option {
-            background: #1a1a2e;
+        .custom-type-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
+        .custom-type-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(24,95,165,0.08);
+            border: 1px solid rgba(24,95,165,0.18);
+            border-radius: 2px;
+            padding: 4px 8px 4px 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .custom-type-chip strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .custom-type-chip .chip-slug {
+            font-size: 10px;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+        .custom-type-chip .chip-count {
+            font-size: 10px;
+            color: var(--text-dim);
+            border-left: 1px solid var(--border-soft);
+            padding-left: 6px;
+            margin-left: 2px;
+        }
+        .custom-type-chip .chip-count.in-use {
+            color: #d97706;
+        }
+
+        .btn-chip-del {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0 2px;
+            transition: color 0.15s;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .btn-chip-del:hover { color: #e74c3c; }
+        .btn-chip-del:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .no-custom-types-msg {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        [data-theme="light"] .custom-type-chip {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+
+        /* Table */
         .table-card {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 3px;
             overflow: hidden;
+            transition: background 0.25s;
+            box-shadow: var(--shadow-table);
         }
-
         .table-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 14px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--border);
+        }
+
+        [data-theme="light"] .table-header {
+            background: linear-gradient(to right, #f8f9fc, #ffffff);
         }
 
         .table-title {
             font-family: 'Rajdhani', sans-serif;
             font-size: 14px;
             font-weight: 600;
-            color: white;
+            color: var(--text-primary);
             letter-spacing: 1px;
             text-transform: uppercase;
         }
+        .table-count { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
 
-        .table-count {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.3);
-            letter-spacing: 1px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        table { width:100%; border-collapse:collapse; }
         th {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--th-bg);
             padding: 10px 16px;
             text-align: left;
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-soft);
             font-weight: 600;
+        }
+
+        [data-theme="light"] th {
+            color: #6b7280;
+            border-bottom: 2px solid #e5e7eb;
         }
 
         td {
             padding: 11px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid var(--border-soft);
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-cell);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-hover); }
+        td strong { color: var(--text-primary); font-weight:600; }
+
+        [data-theme="light"] tr:hover td {
+            background: rgba(24,95,165,0.03);
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
+        /* Edit row */
+        tr.editing td { background: var(--edit-row-bg) !important; }
+        tr.editing { outline: 1px solid var(--edit-row-border); }
 
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+        .inline-edit-input {
+            background: var(--input-bg);
+            border: 1px solid var(--border-input);
+            border-radius: 2px;
+            padding: 5px 8px;
+            font-size: 12px;
+            color: var(--text-primary);
+            font-family: 'Open Sans', sans-serif;
+            outline: none;
+            width: 100%;
+            min-width: 80px;
         }
+        .inline-edit-input:focus { border-color: #185FA5; }
 
-        td strong {
-            color: white;
-            font-weight: 600;
+        .inline-edit-select {
+            background: var(--input-bg);
+            border: 1px solid var(--border-input);
+            border-radius: 2px;
+            padding: 5px 8px;
+            font-size: 12px;
+            color: var(--text-primary);
+            font-family: 'Open Sans', sans-serif;
+            outline: none;
         }
+        .inline-edit-select option { background: var(--bg-card); color: var(--text-primary); }
+        .inline-edit-select:focus { border-color: #185FA5; }
+
+        .btn-edit {
+            background: rgba(24,95,165,0.1);
+            color: #5b9bd5;
+            border: 1px solid rgba(24,95,165,0.2);
+            padding: 4px 10px;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-edit:hover { background: #185FA5; color:white; }
+
+        [data-theme="light"] .btn-edit { color: #1d4ed8; border-color: rgba(29,78,216,0.3); }
+
+        .btn-save {
+            background: rgba(40,167,69,0.15);
+            color: #5cb85c;
+            border: 1px solid rgba(40,167,69,0.25);
+            padding: 4px 10px;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-save:hover { background: #28a745; color:white; }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-input);
+            padding: 4px 10px;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-cancel:hover { color:var(--text-primary); }
 
         .pill {
             display: inline-flex;
@@ -475,66 +729,32 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
+        .pill-up      { background:rgba(40,167,69,0.15);  color:#5cb85c; border:1px solid rgba(40,167,69,0.2); }
+        .pill-down    { background:rgba(193,18,31,0.15);   color:#e74c3c; border:1px solid rgba(193,18,31,0.2); }
+        .pill-unknown { background:rgba(255,193,7,0.1);    color:#ffc107; border:1px solid rgba(255,193,7,0.2); }
 
-        .pill-up {
-            background: rgba(40, 167, 69, 0.15);
-            color: #5cb85c;
-            border: 1px solid rgba(40, 167, 69, 0.2);
-        }
+        [data-theme="light"] .pill-up    { background:#dcfce7; color:#15803d; border-color:#bbf7d0; }
+        [data-theme="light"] .pill-down  { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
+        [data-theme="light"] .pill-unknown { background:#fef3c7; color:#b45309; border-color:#fde68a; }
 
-        .pill-down {
-            background: rgba(193, 18, 31, 0.15);
-            color: #e74c3c;
-            border: 1px solid rgba(193, 18, 31, 0.2);
-        }
+        .dot { width:5px; height:5px; border-radius:50%; }
+        .dot-up      { background:#5cb85c; }
+        .dot-down    { background:#e74c3c; animation:blink 1.5s infinite; }
+        .dot-unknown { background:#ffc107; }
 
-        .pill-unknown {
-            background: rgba(255, 193, 7, 0.1);
-            color: #ffc107;
-            border: 1px solid rgba(255, 193, 7, 0.2);
-        }
-
-        .dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-        }
-
-        .dot-up {
-            background: #5cb85c;
-        }
-
-        .dot-down {
-            background: #e74c3c;
-            animation: blink 1.5s infinite;
-        }
-
-        .dot-unknown {
-            background: #ffc107;
-        }
+        [data-theme="light"] .dot-up  { background:#16a34a; }
+        [data-theme="light"] .dot-down { background:#dc2626; }
 
         @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.2;
-            }
+            0%,100% { opacity:1; }
+            50%      { opacity:0.2; }
         }
 
-        .delete-form {
-            display: inline;
-            margin: 0;
-            padding: 0;
-        }
-
+        .delete-form { display:inline; margin:0; padding:0; }
         .btn-del {
-            background: rgba(193, 18, 31, 0.1);
+            background: rgba(193,18,31,0.1);
             color: #e74c3c;
-            border: 1px solid rgba(193, 18, 31, 0.2);
+            border: 1px solid rgba(193,18,31,0.2);
             padding: 4px 10px;
             border-radius: 2px;
             font-size: 11px;
@@ -542,22 +762,14 @@
             font-family: 'Open Sans', sans-serif;
             transition: all 0.2s;
         }
+        .btn-del:hover { background:#c1121f; color:white; }
 
-        .btn-del:hover {
-            background: #c1121f;
-            color: white;
-        }
+        [data-theme="light"] .btn-del { color: #dc2626; }
 
-        .file-input {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-        }
+        .action-cell { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 
-        .upload-form {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .file-input { font-size:11px; color:var(--text-muted); }
+        .upload-form { display:inline-flex; align-items:center; gap:8px; }
 
         .pagination {
             display: flex;
@@ -566,56 +778,59 @@
             gap: 8px;
             margin-top: 16px;
             padding-bottom: 24px;
+            flex-wrap: wrap;
         }
 
         .page-btn {
             padding: 7px 14px;
-            background: rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--btn-sec-bg);
+            color: var(--btn-sec-color);
+            border: 1px solid var(--btn-sec-border);
             border-radius: 2px;
             text-decoration: none;
             font-size: 12px;
             transition: all 0.2s;
         }
+        .page-btn:hover { background:var(--btn-sec-hover); color:var(--text-primary); }
+        .page-btn.active { background:#c1121f; color:white; border-color:#c1121f; }
+        .page-dots { color:var(--text-dim); font-size:12px; }
+        .page-info { font-size:11px; color:var(--text-dim); margin-left:8px; }
 
-        .page-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: white;
-        }
-
-        .page-btn.active {
-            background: #c1121f;
-            color: white;
-            border-color: #c1121f;
-        }
-
-        .page-dots {
-            color: rgba(255, 255, 255, 0.3);
+        .per-page-select {
+            background: var(--input-bg);
+            border: 1px solid var(--border-input);
+            color: var(--text-primary);
+            border-radius: 2px;
+            padding: 6px 10px;
             font-size: 12px;
+            font-family: 'Open Sans', sans-serif;
+            cursor: pointer;
+            outline: none;
+        }
+        .per-page-select:focus { border-color:#c1121f; }
+        .per-page-label { font-size:11px; color:var(--text-muted); }
+
+        .chart-filter-active {
+            background: rgba(193,18,31,0.1);
+            border: 1px dashed rgba(193,18,31,0.4);
+            border-radius: 2px;
+            font-size: 10px;
+            color: #e74c3c;
+            padding: 2px 8px;
+            margin-left: 6px;
+            display: none;
         }
 
-        .page-info {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.25);
-            margin-left: 8px;
-        }
+        [data-theme="light"] .chart-card { border-color: #e5e7eb; }
+        [data-theme="light"] .chart-title { border-bottom-color: #e5e7eb; color: #6b7280; }
 
         @media (max-width: 980px) {
-            .search-box {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            .search-input {
-                width: 100%;
-                max-width: 260px;
-            }
-
-            .filters-label {
-                width: 100%;
-                margin-bottom: 4px;
-            }
+            .topbar-center { display:none; }
+            .search-box { width:100%; justify-content:flex-start; }
+            .search-input { width:100%; max-width:260px; }
+            .filters-label { width:100%; margin-bottom:4px; }
+            .charts-row { grid-template-columns: 1fr 1fr; }
+            .stats-grid { grid-template-columns: repeat(2,1fr); }
         }
     </style>
 </head>
@@ -624,15 +839,18 @@
 
     <!-- Topbar -->
     <div class="topbar">
-        <div class="topbar-left">
-            <div class="brand">JINDAL <span>STEEL</span></div>
-            <div class="page-badge">Network Monitor</div>
+        <div class ="topbar-left">
+            <img src="{{ url_for('static', filename='Logo.png') }}" class="logo">
         </div>
+        <div class = "topbar-center">Network Monitor system</div>
         <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Switch theme">
+                <span id="themeIcon">☀️</span>
+                <span class="theme-toggle-label" id="themeLabel">Light</span>
+            </button>
             <span class="user-info">
                 <strong>{{ session.username }}</strong>
-                <span class="role-pill {% if role == 'admin' %}role-admin{% else %}role-user{% endif %}">{{ role
-                    }}</span>
+                <span class="role-pill {% if role == 'admin' %}role-admin{% else %}role-user{% endif %}">{{ role }}</span>
             </span>
             <a href="/logout" class="logout-link">Logout</a>
         </div>
@@ -649,31 +867,30 @@
         <script>
             setTimeout(function () {
                 var m = document.getElementById('flash-msg');
-                if (m) { m.style.transition = 'opacity 1s'; m.style.opacity = '0'; setTimeout(function () { m.remove(); }, 1000); }
+                if (m) { m.style.transition='opacity 1s'; m.style.opacity='0'; setTimeout(function(){m.remove();},1000); }
             }, 3000);
         </script>
 
         <!-- Stat Cards -->
         <div class="stats-grid">
-            <div class="stat-card stat-total">
+            <div class="stat-card stat-total" style="cursor:pointer" onclick="filterByStatus('')" title="Show all devices">
                 <div class="stat-label">Total Devices</div>
                 <div class="stat-number" id="totalCount">{{ total }}</div>
                 <div class="stat-icon">&#128225;</div>
             </div>
-            <div class="stat-card stat-up">
+            <div class="stat-card stat-up" style="cursor:pointer" onclick="filterByStatus('UP')" title="Filter Online">
                 <div class="stat-label">Online</div>
                 <div class="stat-number" id="upCount">{{ up_count }}</div>
                 <div class="stat-icon">&#9654;</div>
             </div>
-            <div class="stat-card stat-down">
+            <div class="stat-card stat-down" style="cursor:pointer" onclick="filterByStatus('DOWN')" title="Filter Offline">
                 <div class="stat-label">Offline</div>
                 <div class="stat-number" id="downCount">{{ down_count }}</div>
                 <div class="stat-icon">&#9632;</div>
             </div>
-            <div class="stat-card stat-unknown">
+            <div class="stat-card stat-unknown" style="cursor:pointer" onclick="filterByStatus('UNKNOWN')" title="Filter Unknown">
                 <div class="stat-label">Unknown</div>
-                <div class="stat-number" id="unknownCount">{{
-                    all_devices|selectattr('current_status','equalto','UNKNOWN')|list|length }}</div>
+                <div class="stat-number" id="unknownCount">{{ all_devices|selectattr('current_status','equalto','UNKNOWN')|list|length }}</div>
                 <div class="stat-icon">&#9644;</div>
             </div>
         </div>
@@ -681,12 +898,12 @@
         <!-- Charts -->
         <div class="charts-row">
             <div class="chart-card">
-                <div class="chart-title">Status</div>
-                <canvas id="donutChart" height="160"></canvas>
+                <div class="chart-title">Status <span class="chart-filter-active" id="donutFilterBadge">filtered</span></div>
+                <canvas id="donutChart" height="160" class="clickable"></canvas>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Devices by Type</div>
-                <canvas id="barChart" height="80"></canvas>
+                <div class="chart-title">Devices by Type <span class="chart-filter-active" id="barFilterBadge">filtered</span></div>
+                <canvas id="barChart" height="80" class="clickable"></canvas>
             </div>
             <div class="chart-card chart-trend">
                 <div class="chart-title">Status Trend (Recent Checks)</div>
@@ -702,10 +919,10 @@
         <div class="action-bar">
             <a href="/monitor" class="btn btn-primary">&#9654; Run Monitor</a>
             {% if role == 'admin' %}
-            <a href="/test_ping" class="btn btn-secondary">&#9670; Test Ping</a>
-            <a href="/users" class="btn btn-secondary">&#9824; Users</a>
-            <a href="/email_config" class="btn btn-secondary">&#9993; Email</a>
-            <a href="/edit_admin" class="btn btn-secondary">&#9881; My Profile</a>
+            <a href="/test_ping"   class="btn btn-secondary">&#9670; Test Ping</a>
+            <a href="/users"       class="btn btn-secondary">&#9824; Users</a>
+            <a href="/email_config"class="btn btn-secondary">&#9993; Email</a>
+            <a href="/edit_admin"  class="btn btn-secondary">&#9881; My Profile</a>
             <form action="/upload_csv" method="post" enctype="multipart/form-data" class="upload-form">
                 <input type="file" name="csv_file" accept=".csv" required class="file-input">
                 <button type="submit" class="btn btn-secondary">&#8679; Upload CSV</button>
@@ -717,6 +934,8 @@
         <div class="filters-bar">
             <span class="filters-label">Device Filters</span>
             <form method="get" action="/" class="search-box" id="deviceFilterForm">
+                <input type="hidden" name="per_page" id="hiddenPerPage" value="{{ per_page }}">
+
                 <select id="typeFilter" name="type" class="filter-select" onchange="applyFilters()">
                     <option value="">All Types</option>
                     {% for t in all_devices|map(attribute='device_type')|unique|list|sort %}
@@ -725,8 +944,8 @@
                 </select>
                 <select id="statusFilter" name="status" class="filter-select" onchange="applyFilters()">
                     <option value="">All Status</option>
-                    <option value="UP" {% if status_filter=='UP' %}selected{% endif %}>Online</option>
-                    <option value="DOWN" {% if status_filter=='DOWN' %}selected{% endif %}>Offline</option>
+                    <option value="UP"      {% if status_filter=='UP'      %}selected{% endif %}>Online</option>
+                    <option value="DOWN"    {% if status_filter=='DOWN'    %}selected{% endif %}>Offline</option>
                     <option value="UNKNOWN" {% if status_filter=='UNKNOWN' %}selected{% endif %}>Unknown</option>
                 </select>
                 <input type="text" id="searchInput" name="search" class="search-input"
@@ -741,22 +960,80 @@
         {% if role == 'admin' %}
         <div class="add-form">
             <div class="add-form-title">&#43; Add New Device</div>
-            <form action="/add_device" method="post">
+            <form action="/add_device" method="post" id="addDeviceForm">
                 <div class="add-form-row">
-                    <input type="text" name="ip" placeholder="IP Address" required class="form-input-dark"
-                        style="width:180px;">
-                    <select name="device_type" required class="form-input-dark">
-                        <option value="">Device Type</option>
-                        <option value="cctv">CCTV</option>
-                        <option value="switch">Switch</option>
-                        <option value="router">Router</option>
-                        <option value="access_point">Access Point</option>
-                    </select>
-                    <input type="text" name="location" placeholder="Location" required class="form-input-dark"
-                        style="width:180px;">
+                    <input type="text" name="ip" placeholder="IP Address" required class="form-input-dark" style="width:180px;">
+
+                    <!-- Device Type with inline custom type addition -->
+                    <div class="type-select-wrapper">
+                        <div class="type-select-inner">
+                            <select name="device_type" class="form-input-dark" id="addDeviceTypeSelect" style="min-width:200px;">
+                                <option value="">Device Type (Unknown)</option>
+                                <option value="unknown">Unknown</option>
+                                <option value="cctv">CCTV</option>
+                                <option value="switch">Switch</option>
+                                <option value="router">Router</option>
+                                <option value="rf">RF</option>
+                                <option value="access_point">Access Point</option>
+                                {% if custom_device_types %}
+                                    <optgroup label="── Custom Types ──">
+                                    {% for slug, label in custom_device_types %}
+                                        <option value="{{ slug }}">{{ label }}</option>
+                                    {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                            </select>
+                            <button type="button" class="btn-add-type-inline" onclick="toggleTypePanel()" title="Add custom device type">&#43;</button>
+                        </div>
+
+                        <!-- Inline custom type panel -->
+                        <div class="inline-type-panel" id="inlineTypePanel">
+                            <input type="text" id="newTypeLabel" placeholder="Type name (e.g. Fiber Switch)" maxlength="60">
+                            <button type="button" class="btn-type-save" onclick="saveCustomType()">&#10004; Add</button>
+                            <button type="button" class="btn-type-cancel" onclick="toggleTypePanel()">&#10006;</button>
+                            <span class="inline-type-hint">Auto-slug: "Fiber Switch" → fiber_switch</span>
+                        </div>
+                    </div>
+
+                    <input type="text" name="location" placeholder="Location" required class="form-input-dark" style="width:180px;">
                     <button type="submit" class="btn btn-primary">Add Device</button>
                 </div>
             </form>
+
+            <!-- Manage Custom Types (collapsible) -->
+            <button type="button" class="manage-types-toggle" id="manageTypesToggle" onclick="toggleManageTypes()">
+                <span class="arrow">&#9658;</span> Manage Custom Types
+                {% if custom_device_types %}
+                <span style="background:rgba(24,95,165,0.2);color:#5b9bd5;border-radius:2px;padding:1px 6px;font-size:10px;">{{ custom_device_types|length }}</span>
+                {% endif %}
+            </button>
+
+            <div class="manage-types-panel" id="manageTypesPanel">
+                <div class="manage-types-panel-title">Custom Types — click ✕ to delete (only if no devices assigned)</div>
+                <div class="custom-type-list" id="customTypeList">
+                    {% if custom_device_types %}
+                        {% for slug, label in custom_device_types %}
+                        <div class="custom-type-chip" id="chip-{{ slug }}">
+                            <strong>{{ label }}</strong>
+                            <span class="chip-slug">{{ slug }}</span>
+                            <span class="chip-count {{ 'in-use' if device_type_usage.get(slug, 0) > 0 else '' }}"
+                                  id="chip-count-{{ slug }}"
+                                  title="{{ device_type_usage.get(slug, 0) }} device(s) assigned">
+                                {{ device_type_usage.get(slug, 0) }} dev
+                            </span>
+                            <button type="button"
+                                    class="btn-chip-del"
+                                    onclick="deleteCustomType('{{ slug }}', '{{ label }}')"
+                                    {% if device_type_usage.get(slug, 0) > 0 %}disabled title="{{ device_type_usage.get(slug, 0) }} device(s) still assigned"{% endif %}>
+                                &#10005;
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <span class="no-custom-types-msg" id="noTypesMsg">No custom types yet. Use the + button above to add one.</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         {% endif %}
 
@@ -774,16 +1051,16 @@
                         <th>Location</th>
                         <th>Status</th>
                         <th>Last Checked</th>
-                        {% if role == 'admin' %}<th>Action</th>{% endif %}
+                        {% if role == 'admin' %}<th>Actions</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for device in devices %}
-                    <tr>
-                        <td><strong>{{ device.ip }}</strong></td>
-                        <td>{{ device.device_type|upper }}</td>
-                        <td>{{ device.location }}</td>
-                        <td>
+                    <tr id="row-{{ device.id }}" data-device-id="{{ device.id }}">
+                        <td class="view-ip"><strong>{{ device.ip }}</strong></td>
+                        <td class="view-type">{{ device.device_type|upper }}</td>
+                        <td class="view-location">{{ device.location }}</td>
+                        <td class="view-status">
                             {% if device.current_status == 'UP' %}
                             <span class="pill pill-up"><span class="dot dot-up"></span>Online</span>
                             {% elif device.current_status == 'DOWN' %}
@@ -792,13 +1069,23 @@
                             <span class="pill pill-unknown"><span class="dot dot-unknown"></span>Unknown</span>
                             {% endif %}
                         </td>
-                        <td style="color:rgba(255,255,255,0.3); font-size:12px;">{{ device.last_checked or '—' }}</td>
+                        <td class="view-lastchecked" style="color:var(--text-dim); font-size:12px;">{{ device.last_checked or '—' }}</td>
                         {% if role == 'admin' %}
-                        <td>
-                            <form action="/delete_device/{{ device.id }}" method="post" class="delete-form"
-                                onsubmit="return confirm('Delete {{ device.ip }}?')">
-                                <button type="submit" class="btn-del">Delete</button>
-                            </form>
+                        <td class="view-actions">
+                            <div class="action-cell">
+                                <button class="btn-edit"
+                                    onclick="startEdit('{{ device.id }}', '{{ device.ip }}', '{{ device.device_type }}', '{{ device.location }}')"
+                                    title="Edit device">&#9998; Edit</button>
+                                <form action="/delete_device/{{ device.id }}" method="post" class="delete-form"
+                                    onsubmit="return confirm('Delete {{ device.ip }}?')">
+                                    <input type="hidden" name="redirect_page"   value="{{ page }}">
+                                    <input type="hidden" name="redirect_search" value="{{ search_query or '' }}">
+                                    <input type="hidden" name="redirect_type"   value="{{ type_filter or '' }}">
+                                    <input type="hidden" name="redirect_status" value="{{ status_filter or '' }}">
+                                    <input type="hidden" name="redirect_per_page" value="{{ per_page }}">
+                                    <button type="submit" class="btn-del">&#128465; Delete</button>
+                                </form>
+                            </div>
                         </td>
                         {% endif %}
                     </tr>
@@ -809,193 +1096,257 @@
 
         <!-- Pagination -->
         <div class="pagination">
+            <span class="per-page-label">Rows per page:</span>
+            <select class="per-page-select" id="perPageSelect" onchange="changePerPage(this.value)">
+                <option value="50"  {% if per_page == 50  %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+
             {% if page > 1 %}
-            <a href="{{ url_for('index', page=page - 1, search=search_query, type=type_filter, status=status_filter) }}"
-                class="page-btn">&#8592; Prev</a>
+            <a href="{{ url_for('index', page=page-1, search=search_query, type=type_filter, status=status_filter, per_page=per_page) }}"
+               class="page-btn">&#8592; Prev</a>
             {% endif %}
 
             {% for p in range(1, total_pages + 1) %}
-            {% if p == page %}
-            <span class="page-btn active">{{ p }}</span>
-            {% elif p <= 3 or p>= total_pages - 2 or (p >= page - 1 and p <= page + 1) %} <a
-                    href="{{ url_for('index', page=p, search=search_query, type=type_filter, status=status_filter) }}"
-                    class="page-btn">{{ p }}</a>
-                    {% elif p == 4 or p == total_pages - 3 %}
+                {% if p == page %}
+                    <span class="page-btn active">{{ p }}</span>
+                {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                    <a href="{{ url_for('index', page=p, search=search_query, type=type_filter, status=status_filter, per_page=per_page) }}"
+                       class="page-btn">{{ p }}</a>
+                {% elif p == 4 or p == total_pages - 3 %}
                     <span class="page-dots">...</span>
-                    {% endif %}
-                    {% endfor %}
+                {% endif %}
+            {% endfor %}
 
-                    {% if page < total_pages %} <a
-                        href="{{ url_for('index', page=page + 1, search=search_query, type=type_filter, status=status_filter) }}"
-                        class="page-btn">Next &#8594;</a>
-                        {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('index', page=page+1, search=search_query, type=type_filter, status=status_filter, per_page=per_page) }}"
+               class="page-btn">Next &#8594;</a>
+            {% endif %}
 
-                        <span class="page-info">Page {{ page }} of {{ total_pages }} &bull; {{ total }} total</span>
+            <span class="page-info">Page {{ page }} of {{ total_pages }} &bull; {{ total }} total</span>
         </div>
 
-    </div>
+    </div><!-- /.main -->
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        Chart.defaults.color = 'rgba(255,255,255,0.4)';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+        /* ─────────── Theme ─────────── */
+        var currentTheme = localStorage.getItem('jspl_theme') || 'dark';
+        _syncThemeUI(currentTheme);
 
-        // ─── FIX: Format raw UTC timestamp → human-readable IST (12-hour AM/PM) ───
-        function formatTimeLabel(dateStr) {
-            try {
-                // Append 'Z' so JS treats the string as UTC
-                var date = new Date(dateStr + 'Z');
-                return date.toLocaleString('en-US', {
-                    month: 'short',   // Apr
-                    day: 'numeric', // 25
-                    hour: '2-digit', // 04
-                    minute: '2-digit', // 40
-                    hour12: true,      // AM/PM
-                    timeZone: 'Asia/Kolkata' // IST — change if needed
-                });
-            } catch (err) {
-                return dateStr; // Fallback: return raw string on any parse error
+        function _syncThemeUI(theme) {
+            var icon  = document.getElementById('themeIcon');
+            var label = document.getElementById('themeLabel');
+            if (icon && label) {
+                icon.textContent  = theme === 'dark' ? '☀️' : '🌙';
+                label.textContent = theme === 'dark' ? 'Light' : 'Dark';
             }
         }
-        // ──────────────────────────────────────────────────────────────────────────
 
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('jspl_theme', theme);
+            _syncThemeUI(theme);
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color       = theme === 'light' ? 'rgba(0,0,0,0.45)'  : 'rgba(255,255,255,0.4)';
+                Chart.defaults.borderColor = theme === 'light' ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.05)';
+                [donutChart, barChart, trendChart, updateChart].forEach(function(c){ if(c) c.update('none'); });
+            }
+        }
+        function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+
+        /* ─────────── Per-page ─────────── */
+        function changePerPage(val) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('per_page', val);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        }
+
+        /* ─────────── Filter helpers ─────────── */
+        function filterByStatus(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('deviceFilterForm').submit();
+        }
+
+        function filterByType(type) {
+            document.getElementById('typeFilter').value = type;
+            document.getElementById('deviceFilterForm').submit();
+        }
+
+        /* ─────────── Chart defaults ─────────── */
+        Chart.defaults.color       = currentTheme === 'light' ? 'rgba(0,0,0,0.45)'  : 'rgba(255,255,255,0.4)';
+        Chart.defaults.borderColor = currentTheme === 'light' ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.05)';
+
+        /* Donut */
         var donutChart = new Chart(document.getElementById('donutChart').getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['Online', 'Offline', 'Unknown'],
+                labels: ['Online','Offline','Unknown'],
                 datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['rgba(40,167,69,0.8)', 'rgba(193,18,31,0.8)', 'rgba(255,193,7,0.8)'],
+                    data: [0,0,0],
+                    backgroundColor: ['rgba(40,167,69,0.8)','rgba(193,18,31,0.8)','rgba(255,193,7,0.8)'],
                     borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
-                cutout: '70%'
-            }
-        });
-
-        var typeCounts = {};
-
-        var barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(typeCounts),
-                datasets: [{
-                    data: Object.values(typeCounts),
-                    backgroundColor: ['rgba(193,18,31,0.7)', 'rgba(24,95,165,0.7)', 'rgba(40,167,69,0.7)', 'rgba(255,193,7,0.7)'],
-                    borderRadius: 2,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
-                    x: { grid: { display: false } }
+                plugins: { legend: { position:'bottom', labels:{ font:{size:11}, boxWidth:10, padding:10 } } },
+                cutout: '70%',
+                onClick: function(evt, elements) {
+                    if (!elements.length) return;
+                    var idx = elements[0].index;
+                    var statusMap = ['UP','DOWN','UNKNOWN'];
+                    var badge = document.getElementById('donutFilterBadge');
+                    var s = statusMap[idx];
+                    var cur = document.getElementById('statusFilter').value;
+                    if (cur === s) {
+                        filterByStatus('');
+                        badge.style.display = 'none';
+                    } else {
+                        badge.style.display = 'inline';
+                        filterByStatus(s);
+                    }
                 }
             }
         });
 
+        /* Bar */
+        var barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: ['rgba(193,18,31,0.7)','rgba(24,95,165,0.7)','rgba(40,167,69,0.7)','rgba(255,193,7,0.7)','rgba(150,100,200,0.7)','rgba(0,188,212,0.7)','rgba(255,87,34,0.7)','rgba(96,125,139,0.7)'],
+                    borderRadius: 2, borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend:{ display:false } },
+                scales: {
+                    y: { beginAtZero:true, grid:{ color: currentTheme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)' } },
+                    x: { grid:{ display:false } }
+                },
+                onClick: function(evt, elements) {
+                    if (!elements.length) return;
+                    var idx = elements[0].index;
+                    var label = barChart.data.labels[idx];
+                    var badge = document.getElementById('barFilterBadge');
+                    var cur = document.getElementById('typeFilter').value;
+                    if (cur.toUpperCase() === label.toUpperCase()) {
+                        filterByType('');
+                        badge.style.display = 'none';
+                    } else {
+                        badge.style.display = 'inline';
+                        filterByType(label.toLowerCase());
+                    }
+                }
+            }
+        });
+
+        /* Trend */
         var trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Online', data: [], borderColor: 'rgba(40,167,69,0.9)', tension: 0.3, borderWidth: 2, fill: false },
-                    { label: 'Offline', data: [], borderColor: 'rgba(193,18,31,0.9)', tension: 0.3, borderWidth: 2, fill: false },
-                    { label: 'Unknown', data: [], borderColor: 'rgba(255,193,7,0.9)', tension: 0.3, borderWidth: 2, fill: false }
+                    { label:'Online',  data:[], borderColor:'rgba(40,167,69,0.9)',  tension:0.3, borderWidth:2, fill:false },
+                    { label:'Offline', data:[], borderColor:'rgba(193,18,31,0.9)',  tension:0.3, borderWidth:2, fill:false },
+                    { label:'Unknown', data:[], borderColor:'rgba(255,193,7,0.9)',  tension:0.3, borderWidth:2, fill:false }
                 ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
+                plugins: { legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:10, padding:10 } } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
-                    x: { grid: { display: false } }
+                    y: { beginAtZero:true, grid:{ color: currentTheme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)' } },
+                    x: { grid:{ display:false } }
                 }
             }
         });
 
+        /* Updates */
         var updateChart = new Chart(document.getElementById('updateChart').getContext('2d'), {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Checks', data: [], borderColor: 'rgba(24,95,165,0.95)', tension: 0.3, borderWidth: 2, fill: false },
-                    { label: 'Status Changes', data: [], borderColor: 'rgba(193,18,31,0.95)', tension: 0.3, borderWidth: 2, fill: false }
+                    { label:'Checks',         data:[], borderColor:'rgba(24,95,165,0.95)',  tension:0.3, borderWidth:2, fill:false },
+                    { label:'Status Changes', data:[], borderColor:'rgba(193,18,31,0.95)',  tension:0.3, borderWidth:2, fill:false }
                 ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 10 } } },
+                plugins: { legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:10, padding:10 } } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
-                    x: { grid: { display: false } }
+                    y: { beginAtZero:true, grid:{ color: currentTheme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)' } },
+                    x: { grid:{ display:false } }
                 }
             }
         });
 
+        /* ─────────── Dashboard refresh ─────────── */
         function refreshDashboardCharts() {
             fetch('/dashboard_metrics')
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.error) return;
-
-                    // Update stat counters
-                    document.getElementById('totalCount').textContent = data.counts.total;
-                    document.getElementById('upCount').textContent = data.counts.up;
-                    document.getElementById('downCount').textContent = data.counts.down;
+                .then(function(r){
+                    if (r.status===401){ window.location.href='/login'; return Promise.reject('session_expired'); }
+                    if (!r.ok){ return Promise.reject('http_'+r.status); }
+                    var ct = r.headers.get('content-type')||'';
+                    if (!ct.includes('application/json')){ window.location.href='/login'; return Promise.reject('not_json'); }
+                    return r.json();
+                })
+                .then(function(data){
+                    if (!data || data.error) return;
+                    document.getElementById('totalCount').textContent   = data.counts.total;
+                    document.getElementById('upCount').textContent      = data.counts.up;
+                    document.getElementById('downCount').textContent    = data.counts.down;
                     document.getElementById('unknownCount').textContent = data.counts.unknown;
 
-                    // Donut chart
                     donutChart.data.datasets[0].data = [data.counts.up, data.counts.down, data.counts.unknown];
                     donutChart.update('none');
 
-                    // Bar chart (device types)
                     barChart.data.labels = Object.keys(data.type_counts);
                     barChart.data.datasets[0].data = Object.values(data.type_counts);
                     barChart.update('none');
 
-                    // ─── FIX: apply formatTimeLabel to raw timestamp labels ───────────
-                    trendChart.data.labels = (data.trend.labels || []).map(formatTimeLabel);
-                    trendChart.data.datasets[0].data = data.trend.up || [];
-                    trendChart.data.datasets[1].data = data.trend.down || [];
-                    trendChart.data.datasets[2].data = data.trend.unknown || [];
+                    trendChart.data.labels = data.trend.labels||[];
+                    trendChart.data.datasets[0].data = data.trend.up||[];
+                    trendChart.data.datasets[1].data = data.trend.down||[];
+                    trendChart.data.datasets[2].data = data.trend.unknown||[];
                     trendChart.update('none');
 
-                    updateChart.data.labels = (data.updates.labels || []).map(formatTimeLabel);
-                    updateChart.data.datasets[0].data = data.updates.checks || [];
-                    updateChart.data.datasets[1].data = data.updates.changes || [];
+                    updateChart.data.labels = data.updates.labels||[];
+                    updateChart.data.datasets[0].data = data.updates.checks||[];
+                    updateChart.data.datasets[1].data = data.updates.changes||[];
                     updateChart.update('none');
-                    // ─────────────────────────────────────────────────────────────────
                 })
-                .catch(function (err) { console.error('Unable to refresh dashboard metrics:', err); });
+                .catch(function(err){
+                    if (err==='session_expired'||err==='not_json') return;
+                    console.error('Dashboard metrics error:', err);
+                });
         }
 
         refreshDashboardCharts();
         setInterval(refreshDashboardCharts, 30000);
 
+        /* ─────────── Table filter ─────────── */
         function filterTable() {
-            var input = document.getElementById('searchInput').value.toLowerCase().trim();
-            var typeFilter = document.getElementById('typeFilter').value;
+            var input        = document.getElementById('searchInput').value.toLowerCase().trim();
+            var typeFilter   = document.getElementById('typeFilter').value;
             var statusFilter = document.getElementById('statusFilter').value;
-
-            document.querySelectorAll('#deviceTable tbody tr').forEach(function (row) {
+            document.querySelectorAll('#deviceTable tbody tr').forEach(function(row){
                 var cells = row.querySelectorAll('td');
                 if (cells.length < 4) return;
-
-                var ip = cells[0].innerText.toLowerCase();
-                var type = cells[1].innerText.trim().toUpperCase();
+                var ip       = cells[0].innerText.toLowerCase();
+                var type     = cells[1].innerText.trim().toUpperCase();
                 var location = cells[2].innerText.toLowerCase();
-                var status = cells[3].innerText.trim().toUpperCase();
-
-                var textMatch = !input || ip.includes(input) || type.toLowerCase().includes(input) || location.includes(input);
-                var typeMatch = !typeFilter || type === typeFilter;
-                var statusMatch = !statusFilter || status === statusFilter;
-
+                var status   = cells[3].innerText.trim().toUpperCase();
+                var textMatch   = !input       || ip.includes(input) || type.toLowerCase().includes(input) || location.includes(input);
+                var typeMatch   = !typeFilter   || type === typeFilter.toUpperCase();
+                var statusMatch = !statusFilter || status.includes(statusFilter);
                 row.style.display = (textMatch && typeMatch && statusMatch) ? '' : 'none';
             });
         }
@@ -1006,13 +1357,294 @@
         }
 
         function clearFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('typeFilter').value = '';
-            document.getElementById('statusFilter').value = '';
+            document.getElementById('searchInput').value   = '';
+            document.getElementById('typeFilter').value    = '';
+            document.getElementById('statusFilter').value  = '';
             document.getElementById('deviceFilterForm').submit();
+        }
+
+        /* ─────────── Inline Custom Type Panel ─────────── */
+        function toggleTypePanel() {
+            var panel = document.getElementById('inlineTypePanel');
+            var isOpen = panel.classList.contains('open');
+            if (isOpen) {
+                panel.classList.remove('open');
+                document.getElementById('newTypeLabel').value = '';
+            } else {
+                panel.classList.add('open');
+                setTimeout(function(){ document.getElementById('newTypeLabel').focus(); }, 50);
+            }
+        }
+
+        function slugify(str) {
+            return str.toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        }
+
+        function saveCustomType() {
+            var labelInput = document.getElementById('newTypeLabel');
+            var label = labelInput.value.trim();
+            if (!label) { labelInput.focus(); return; }
+
+            var slug = slugify(label);
+            if (!slug) { alert('Please enter a valid type name.'); return; }
+
+            var formData = new FormData();
+            formData.append('label', label);
+            formData.append('source', 'inline');
+
+            fetch('/add_device_type', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    // 1. Add to the dropdown and select it
+                    var select = document.getElementById('addDeviceTypeSelect');
+                    var exists = false;
+                    for (var i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value === data.slug) { exists = true; select.selectedIndex = i; break; }
+                    }
+                    if (!exists) {
+                        var optgroup = select.querySelector('optgroup[label="── Custom Types ──"]');
+                        if (!optgroup) {
+                            optgroup = document.createElement('optgroup');
+                            optgroup.label = '── Custom Types ──';
+                            select.appendChild(optgroup);
+                        }
+                        var opt = document.createElement('option');
+                        opt.value = data.slug;
+                        opt.textContent = data.label;
+                        opt.selected = true;
+                        optgroup.appendChild(opt);
+                    }
+
+                    // 2. Also add a chip to the manage panel (if not already there)
+                    if (!data.already_existed) {
+                        var list = document.getElementById('customTypeList');
+                        var noMsg = document.getElementById('noTypesMsg');
+                        if (noMsg) noMsg.remove();
+
+                        var chip = document.createElement('div');
+                        chip.className = 'custom-type-chip';
+                        chip.id = 'chip-' + data.slug;
+                        chip.innerHTML =
+                            '<strong>' + escHtml(data.label) + '</strong>'
+                            + '<span class="chip-slug">' + escHtml(data.slug) + '</span>'
+                            + '<span class="chip-count" id="chip-count-' + data.slug + '" title="0 device(s) assigned">0 dev</span>'
+                            + '<button type="button" class="btn-chip-del" onclick="deleteCustomType(\'' + data.slug + '\',\'' + escHtml(data.label) + '\')">&#10005;</button>';
+                        list.appendChild(chip);
+
+                        // Update the toggle badge count
+                        _updateTypeBadgeCount(1);
+
+                        // Also add to DEVICE_TYPES/DEVICE_LABELS for inline edit
+                        if (DEVICE_TYPES.indexOf(data.slug) === -1) {
+                            DEVICE_TYPES.push(data.slug);
+                            DEVICE_LABELS[data.slug] = data.label;
+                        }
+                    }
+
+                    document.getElementById('inlineTypePanel').classList.remove('open');
+                    labelInput.value = '';
+                } else {
+                    alert(data.error || 'Failed to add type.');
+                }
+            })
+            .catch(function() { alert('Network error. Please try again.'); });
+        }
+
+        // Allow Enter / Escape in type input
+        document.getElementById('newTypeLabel') && document.getElementById('newTypeLabel').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); saveCustomType(); }
+            if (e.key === 'Escape') { toggleTypePanel(); }
+        });
+
+        /* ─────────── Manage Custom Types Panel ─────────── */
+        function toggleManageTypes() {
+            var panel  = document.getElementById('manageTypesPanel');
+            var toggle = document.getElementById('manageTypesToggle');
+            var open   = panel.classList.contains('open');
+            panel.classList.toggle('open', !open);
+            toggle.classList.toggle('open', !open);
+        }
+
+        function _updateTypeBadgeCount(delta) {
+            var toggle = document.getElementById('manageTypesToggle');
+            if (!toggle) return;
+            var badge = toggle.querySelector('span[style]');
+            var current = badge ? parseInt(badge.textContent) || 0 : 0;
+            var next = current + delta;
+            if (next <= 0) {
+                if (badge) badge.remove();
+            } else {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.style.cssText = 'background:rgba(24,95,165,0.2);color:#5b9bd5;border-radius:2px;padding:1px 6px;font-size:10px;';
+                    toggle.appendChild(badge);
+                }
+                badge.textContent = next;
+            }
+        }
+
+        function deleteCustomType(slug, label) {
+            var countEl = document.getElementById('chip-count-' + slug);
+            var inUse = countEl && countEl.classList.contains('in-use');
+            if (inUse) {
+                var count = countEl ? countEl.textContent.trim() : '';
+                alert('Cannot delete "' + label + '" — ' + count + ' still assigned.\nReassign those devices first.');
+                return;
+            }
+            if (!confirm('Delete custom type "' + label + '"?\nThis cannot be undone.')) return;
+
+            var formData = new FormData();
+            fetch('/delete_device_type/' + slug, { method: 'POST', body: formData })
+            .then(function(r) {
+                if (r.ok || r.redirected) {
+                    // Remove chip from manage panel
+                    var chip = document.getElementById('chip-' + slug);
+                    if (chip) chip.remove();
+
+                    // Remove from dropdown
+                    var select = document.getElementById('addDeviceTypeSelect');
+                    for (var i = 0; i < select.options.length; i++) {
+                        if (select.options[i].value === slug) { select.remove(i); break; }
+                    }
+                    // Remove empty optgroup
+                    var og = select.querySelector('optgroup[label="── Custom Types ──"]');
+                    if (og && og.children.length === 0) og.remove();
+
+                    // Remove from DEVICE_TYPES/DEVICE_LABELS
+                    var idx = DEVICE_TYPES.indexOf(slug);
+                    if (idx > -1) { DEVICE_TYPES.splice(idx, 1); delete DEVICE_LABELS[slug]; }
+
+                    // Show empty msg if no types left
+                    var list = document.getElementById('customTypeList');
+                    if (list && list.querySelectorAll('.custom-type-chip').length === 0) {
+                        var msg = document.createElement('span');
+                        msg.className = 'no-custom-types-msg';
+                        msg.id = 'noTypesMsg';
+                        msg.textContent = 'No custom types yet. Use the + button above to add one.';
+                        list.appendChild(msg);
+                    }
+
+                    _updateTypeBadgeCount(-1);
+                } else {
+                    alert('Failed to delete type. It may still be in use.');
+                }
+            })
+            .catch(function() { alert('Network error. Please try again.'); });
+        }
+
+        /* ─────────── Inline Edit ─────────── */
+        var DEVICE_TYPES = [
+            'unknown','cctv','switch','router','rf',
+            'access_point','firewall','server','printer',
+            'ups','plc','hmi','workstation','nvr','phone'
+        ];
+        var DEVICE_LABELS = {
+            'unknown':'Unknown','cctv':'CCTV','switch':'Switch','router':'Router','rf':'RF',
+            'access_point':'Access Point','firewall':'Firewall','server':'Server',
+            'printer':'Printer','ups':'UPS','plc':'PLC','hmi':'HMI',
+            'workstation':'Workstation','nvr':'NVR / DVR','phone':'IP Phone'
+        };
+
+        // Merge custom types from server into the inline-edit list
+        var CUSTOM_TYPES = {{ custom_device_types | tojson }};
+        CUSTOM_TYPES.forEach(function(pair) {
+            if (DEVICE_TYPES.indexOf(pair[0]) === -1) {
+                DEVICE_TYPES.push(pair[0]);
+                DEVICE_LABELS[pair[0]] = pair[1];
+            }
+        });
+
+        var _editOriginals = {};
+
+        function startEdit(deviceId, ip, deviceType, location) {
+            var row = document.getElementById('row-' + deviceId);
+            if (!row) return;
+
+            _editOriginals[deviceId] = {
+                ip:       row.querySelector('.view-ip').innerHTML,
+                type:     row.querySelector('.view-type').innerHTML,
+                location: row.querySelector('.view-location').innerHTML,
+                actions:  row.querySelector('.view-actions').innerHTML
+            };
+
+            row.classList.add('editing');
+
+            row.querySelector('.view-ip').innerHTML =
+                '<input class="inline-edit-input" id="edit-ip-'+deviceId+'" value="'+escHtml(ip)+'">';
+
+            var typeOpts = DEVICE_TYPES.map(function(t){
+                var lbl = DEVICE_LABELS[t] || t.toUpperCase();
+                return '<option value="'+t+'"'+(t===deviceType.toLowerCase()?' selected':'')+'>'+lbl+'</option>';
+            }).join('');
+            row.querySelector('.view-type').innerHTML =
+                '<select class="inline-edit-select" id="edit-type-'+deviceId+'">' + typeOpts + '</select>';
+
+            row.querySelector('.view-location').innerHTML =
+                '<input class="inline-edit-input" id="edit-location-'+deviceId+'" value="'+escHtml(location)+'">';
+
+            row.querySelector('.view-actions').innerHTML =
+                '<div class="action-cell">'
+                +'<button class="btn-save" onclick="saveEdit('+deviceId+')">&#10004; Save</button>'
+                +'<button class="btn-cancel" onclick="cancelEdit('+deviceId+')">&#10006; Cancel</button>'
+                +'</div>';
+        }
+
+        function cancelEdit(deviceId) {
+            var row = document.getElementById('row-' + deviceId);
+            if (!row || !_editOriginals[deviceId]) return;
+            row.classList.remove('editing');
+            var orig = _editOriginals[deviceId];
+            row.querySelector('.view-ip').innerHTML       = orig.ip;
+            row.querySelector('.view-type').innerHTML     = orig.type;
+            row.querySelector('.view-location').innerHTML = orig.location;
+            row.querySelector('.view-actions').innerHTML  = orig.actions;
+            delete _editOriginals[deviceId];
+        }
+
+        function saveEdit(deviceId) {
+            var ip       = document.getElementById('edit-ip-'       + deviceId).value.trim();
+            var type     = document.getElementById('edit-type-'     + deviceId).value.trim();
+            var location = document.getElementById('edit-location-' + deviceId).value.trim();
+
+            if (!ip) { alert('IP address cannot be empty.'); return; }
+            if (!location) { alert('Location cannot be empty.'); return; }
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/edit_device/' + deviceId;
+            form.style.display = 'none';
+
+            var fields = {
+                ip: ip, device_type: type, location: location,
+                redirect_page:     '{{ page }}',
+                redirect_search:   '{{ search_query or "" }}',
+                redirect_type:     '{{ type_filter or "" }}',
+                redirect_status:   '{{ status_filter or "" }}',
+                redirect_per_page: '{{ per_page }}'
+            };
+
+            Object.keys(fields).forEach(function(k){
+                var inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
+                form.appendChild(inp);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;');
         }
     </script>
 
 </body>
-
 </html>
